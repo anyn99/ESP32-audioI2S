@@ -521,8 +521,10 @@ size_t copy_from_utf16(const uint8_t* src, bool is_big_endian = false) {
     // text1.append(", Welt!");
     // printf("%s\n", text1.get());  // → "Hallo, Welt!"
 
-    template <typename U = T>
-    requires std::is_same_v<U, char>
+    //template <typename U = T>
+    //requires std::is_same_v<U, char>
+    template<typename U = T,
+              typename = typename std::enable_if<std::is_same_v<U, char>>::type>
     void append(const char* suffix) {
         if (!suffix || !*suffix) return;
 
@@ -562,8 +564,10 @@ size_t copy_from_utf16(const uint8_t* src, bool is_big_endian = false) {
     // printf("%s\n", text1.get());  // → "Hallo, We"
 
 
-    template <typename U = T>
-    requires std::is_same_v<U, char>
+    //template <typename U = T>
+    //requires std::is_same_v<U, char>
+    template<typename U = T,
+              typename = typename std::enable_if<std::is_same_v<U, char>>::type>
     void append(const char* suffix, std::size_t len) {
         if (!suffix || len == 0) return;
 
@@ -602,14 +606,28 @@ size_t copy_from_utf16(const uint8_t* src, bool is_big_endian = false) {
     // }
 
     // Only for T = Char: Check whether the string begins with the given prefix
-    template <typename U = T>
-    requires std::is_same_v<U, char>
+    //template <typename U = T>
+    //requires std::is_same_v<U, char>
+    //template<typename U,
+    //          typename = typename std::enable_if<std::is_same_v<U, char>>::type>
+    //bool starts_with(const char* prefix) const {
+    //    if (!mem || !prefix) return false;
+    //
+    //  const char* str = static_cast<const char*>(mem.get());
+    //    std::string_view sv(str);  // C++17, sicherer als strlen
+    //    return sv.starts_with(prefix);
+    //}
+    //PATCHED:
+    template<typename U = T,
+              typename = typename std::enable_if<std::is_same_v<U, char>>::type>
     bool starts_with(const char* prefix) const {
         if (!mem || !prefix) return false;
 
         const char* str = static_cast<const char*>(mem.get());
-        std::string_view sv(str);  // C++17, sicherer als strlen
-        return sv.starts_with(prefix);
+        std::string_view sv(str);
+
+        size_t len = std::strlen(prefix);
+        return sv.size() >= len && sv.substr(0, len) == prefix;
     }
 // —————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————
     // 📌📌📌  E N D S _ W I T H   📌📌📌
@@ -623,15 +641,31 @@ size_t copy_from_utf16(const uint8_t* src, bool is_big_endian = false) {
 
 
     // Only for T = Char: Check whether the string ends with the given suffix
-    template <typename U = T>
-    requires std::is_same_v<U, char>
-    bool ends_with(const char* prefix) const {
-        if (!mem || !prefix) return false;
+    //template <typename U = T>
+    //requires std::is_same_v<U, char>
+    //template<typename U,
+    //         typename = typename std::enable_if<std::is_same_v<U, char>>::type>
+    //bool ends_with(const char* prefix) const {
+    //    if (!mem || !prefix) return false;
+    //
+    //    const char* str = static_cast<const char*>(mem.get());
+    //    std::string_view sv(str);  // C++17, sicherer als strlen
+    //    return sv.ends_with(prefix);
+    //}
+    template<typename U = T,
+              typename = typename std::enable_if<std::is_same_v<U, char>>::type>
+    bool ends_with(const char* suffix) const {
+        if (!mem || !suffix) return false;
 
         const char* str = static_cast<const char*>(mem.get());
-        std::string_view sv(str);  // C++17, sicherer als strlen
-        return sv.ends_with(prefix);
+        std::string_view sv(str);
+
+        size_t len = std::strlen(suffix);
+        // Prüfen, ob sv mindestens so lang ist wie suffix, dann vergleichen
+        return sv.size() >= len && sv.substr(sv.size() - len, len) == suffix;
     }
+
+
 // —————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————
     // 📌📌📌  S T A R T S _ W I T H _ I C A S E   📌📌📌
 
@@ -644,8 +678,10 @@ size_t copy_from_utf16(const uint8_t* src, bool is_big_endian = false) {
 
 
     // case non-sensitive: starts with Prefix?
-    template <typename U = T>
-    requires std::is_same_v<U, char>
+    //template <typename U = T>
+    //requires std::is_same_v<U, char>
+    template<typename U = T,
+              typename = typename std::enable_if<std::is_same_v<U, char>>::type>
     bool starts_with_icase(const char* prefix) const {
         if (!mem || !prefix) return false;
 
@@ -667,8 +703,10 @@ size_t copy_from_utf16(const uint8_t* src, bool is_big_endian = false) {
     // }
 
     // case non-sensitive: ends with suffix?
-    template <typename U = T>
-    requires std::is_same_v<U, char>
+    //template <typename U = T>
+    //requires std::is_same_v<U, char>
+    template<typename U = T,
+              typename = typename std::enable_if<std::is_same_v<U, char>>::type>
     bool ends_with_icase(const char* suffix) const {
         if (!mem || !suffix) return false;
 
@@ -708,8 +746,10 @@ size_t copy_from_utf16(const uint8_t* src, bool is_big_endian = false) {
     // printf("%s\n", message.get());  // → Error: Code 404, Modul Network
 
     // onli activate if T = char
-    template <typename U = T>
-    requires std::is_same_v<U, char>
+    //template <typename U = T>
+    //requires std::is_same_v<U, char>
+    template<typename U = T,
+              typename = typename std::enable_if<std::is_same_v<U, char>>::type>
     void assignf(const char* fmt, ...) {
         if (!fmt) return;
         // Formatierte Länge berechnen
@@ -750,8 +790,10 @@ size_t copy_from_utf16(const uint8_t* src, bool is_big_endian = false) {
     // printf("%s\n", message.get());  // → Error: Code 404, Modul Network
 
     // Nur aktivieren, wenn T = char
-    template <typename U = T>
-    requires std::is_same_v<U, char>
+    //template <typename U = T>
+    //requires std::is_same_v<U, char>
+    template<typename U = T,
+              typename = typename std::enable_if<std::is_same_v<U, char>>::type>
     void appendf(const char* fmt, ...) {
         if (!fmt) return;
 
@@ -804,8 +846,10 @@ size_t copy_from_utf16(const uint8_t* src, bool is_big_endian = false) {
     // }
     // vPrint("Hallo %i", 19);
 
-    template <typename U = T>
-    requires std::is_same_v<U, char>
+    //template <typename U = T>
+    //requires std::is_same_v<U, char>
+    template<typename U = T,
+              typename = typename std::enable_if<std::is_same_v<U, char>>::type>
     void appendf_va(const char* fmt, va_list args) {
         if (!fmt) return;
         // Formatlänge bestimmen (benötigt Kopie von args!)
@@ -875,8 +919,10 @@ size_t copy_from_utf16(const uint8_t* src, bool is_big_endian = false) {
     }
 
     // Specialized version: only for T = char (search for individual characters)
-    template <typename U = T>
-    requires std::is_same_v<U, char>
+    //template <typename U = T>
+    //requires std::is_same_v<U, char>
+    template<typename U = T,
+              typename = typename std::enable_if<std::is_same_v<U, char>>::type>
     int index_of(char ch, std::size_t start = 0) const {
         if (!mem) return -1;
 
@@ -890,8 +936,10 @@ size_t copy_from_utf16(const uint8_t* src, bool is_big_endian = false) {
         return -1;
     }
     // Overload for const char* (substring search)
-    template <typename U = T>
-    requires std::is_same_v<U, char>
+    //template <typename U = T>
+    //requires std::is_same_v<U, char>
+    template<typename U = T,
+              typename = typename std::enable_if<std::is_same_v<U, char>>::type>
     int index_of(const char* substr, std::size_t start = 0) const {
         if (!mem || !substr || !*substr) return -1;
 
@@ -913,8 +961,10 @@ size_t copy_from_utf16(const uint8_t* src, bool is_big_endian = false) {
     //   ps_ptr<char> haystack; // Contains data, e.g., stsd atom content
     //   int32_t idx = haystack.index_of("mp4a", 1024); // Search for "mp4a"
     //   int32_t idx2 = haystack.index_of("\x00\x01\xFF", 3, 1024); // Search for byte sequence
-    template <typename U = T>
-    requires std::is_same_v<U, char>
+    //template <typename U = T>
+    //requires std::is_same_v<U, char>
+    template<typename U = T,
+              typename = typename std::enable_if<std::is_same_v<U, char>>::type>
     int32_t special_index_of(const char* needle, uint32_t needle_length, uint32_t max_length) const {
         static_assert(std::is_same_v<T, char>, "index_of is only valid for ps_ptr<char>");
         if (!mem || !get()) {
@@ -941,8 +991,10 @@ size_t copy_from_utf16(const uint8_t* src, bool is_big_endian = false) {
     }
 
     // Overload for C-string needle (automatically determines needle length, excluding null terminator)
-    template <typename U = T>
-    requires std::is_same_v<U, char>
+    //template <typename U = T>
+    //requires std::is_same_v<U, char>
+    template<typename U = T,
+              typename = typename std::enable_if<std::is_same_v<U, char>>::type>
     int32_t special_index_of(const char* needle, uint32_t max_length) const {
         return special_index_of(needle, needle ? std::strlen(needle) : 0, max_length);
     }
@@ -958,8 +1010,10 @@ size_t copy_from_utf16(const uint8_t* src, bool is_big_endian = false) {
     // int idx4 = s.index_of_icase("notfound");    // -1
 
     // Case-insensitive substring search
-    template <typename U = T>
-    requires std::is_same_v<U, char>
+    //template <typename U = T>
+    //requires std::is_same_v<U, char>
+    template<typename U = T,
+              typename = typename std::enable_if<std::is_same_v<U, char>>::type>
     int index_of_icase(const char* substr, std::size_t start = 0) const {
         if (!mem || !substr || !*substr) return -1;
 
@@ -983,8 +1037,10 @@ size_t copy_from_utf16(const uint8_t* src, bool is_big_endian = false) {
 // —————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————
     // 📌📌📌 L A S T _ I N D E X _ O F   📌📌📌
 
-    template <typename U = T>
-    requires std::is_same_v<U, char>
+    //template <typename U = T>
+    //requires std::is_same_v<U, char>
+    template<typename U = T,
+              typename = typename std::enable_if<std::is_same_v<U, char>>::type>
     int last_index_of(char ch) const {
         if (!mem) return -1;
 
@@ -1022,8 +1078,10 @@ size_t copy_from_utf16(const uint8_t* src, bool is_big_endian = false) {
     // int pos1 = buffer.index_of_substr("ID3", 20); // → finds "ID3" at index 6
     // printf("ID3 found at: %d\n", pos1);
 
-    template <typename U = T>
-    requires std::is_same_v<U, char>
+    //template <typename U = T>
+    //requires std::is_same_v<U, char>
+    template<typename U = T,
+              typename = typename std::enable_if<std::is_same_v<U, char>>::type>
     int index_of_substr(const char* needle, std::size_t max_pos = SIZE_MAX) const {
         if (!mem || !needle || !*needle) return -1;
 
@@ -1048,8 +1106,10 @@ size_t copy_from_utf16(const uint8_t* src, bool is_big_endian = false) {
     // text.assign("Hello");
     // text.strlen();  // --> 5
 
-    template <typename U = T>
-    requires std::is_same_v<U, char>
+    //template <typename U = T>
+    //requires std::is_same_v<U, char>
+    template<typename U = T,
+              typename = typename std::enable_if<std::is_same_v<U, char>>::type>
     size_t strlen() const {
         if (!valid()) return 0;
         return std::strlen(get());
@@ -1264,8 +1324,10 @@ void unicodeToUTF8(const char* src) {
     // 📌📌📌  P R I N T    📌📌📌
     // Prints the stored string to the standard output using printf.
     // Only valid for ps_ptr<char>. Uses c_get() to safely handle null cases.
-    template <typename U = T>
-    requires std::is_same_v<U, char>
+    //template <typename U = T>
+    //requires std::is_same_v<U, char>
+    template<typename U = T,
+              typename = typename std::enable_if<std::is_same_v<U, char>>::type>
     void print() const {
         printf("%s: %s", name ? name : "unnamed", c_get());
     }
@@ -1273,8 +1335,10 @@ void unicodeToUTF8(const char* src) {
     // 📌📌📌  P R I N T L N    📌📌📌
     // Prints the stored string to the standard output using printf.
     // Only valid for ps_ptr<char>. Uses c_get() to safely handle null cases.
-    template <typename U = T>
-    requires std::is_same_v<U, char>
+    //template <typename U = T>
+    //requires std::is_same_v<U, char>
+    template<typename U = T,
+              typename = typename std::enable_if<std::is_same_v<U, char>>::type>
     void println() const {
         printf("%s: %s\n", name ? name : "unnamed", c_get());
     }
@@ -1427,8 +1491,10 @@ void unicodeToUTF8(const char* src) {
     // 📌📌📌  S H R I N K _ T O _ F I T  📌📌📌
 
     // Only for Char: Put the buffer on the actual length +1 (for \ 0)
-    template <typename U = T>
-    requires std::is_same_v<U, char>
+    //template <typename U = T>
+    //requires std::is_same_v<U, char>
+    //template<typename U,
+    //          typename = typename std::enable_if<std::is_same_v<U, char>>::type>
     void shrink_to_fit() {
         if (!mem) return;
         std::size_t len = std::strlen(get());
@@ -1451,8 +1517,10 @@ void unicodeToUTF8(const char* src) {
     // ps_ptr<char> addr = "0x1A3B";
     // uint64_t val = addr.to_uint64(16);
 
-    template <typename U = T>
-    requires std::is_same_v<U, char>
+    //template <typename U = T>
+    //requires std::is_same_v<U, char>
+    template<typename U = T,
+              typename = typename std::enable_if<std::is_same_v<U, char>>::type>
     uint64_t to_uint64(int base = 10) const {
         static_assert(std::is_same_v<T, char>, "to_uint64 is only valid for ps_ptr<char>");
         if (!mem || !get()) {
@@ -1476,8 +1544,10 @@ void unicodeToUTF8(const char* src) {
     // Usage:
     //   ps_ptr<char> size = "227213779"; uint32_t val = size.to_uint32(10); // Returns 227213779
     //   ps_ptr<char> addr = "0x1A3B"; uint32_t val = addr.to_uint32(16); // Returns 6715
-    template <typename U = T>
-    requires std::is_same_v<U, char>
+    //template <typename U = T>
+    //requires std::is_same_v<U, char>
+    template<typename U = T,
+              typename = typename std::enable_if<std::is_same_v<U, char>>::type>
     uint32_t to_uint32(int base = 10) const {
         static_assert(std::is_same_v<T, char>, "to_uint32 is only valid for ps_ptr<char>");
         if (!mem || !get()) {
@@ -1509,8 +1579,10 @@ void unicodeToUTF8(const char* src) {
     // Reads up to 8 bytes from a uint8_t array in big-endian order and stores the value as a hexadecimal string (e.g., "0x12345678").
     // Example: uint8_t data[] = {0x12, 0x34, 0x56, 0x78}; → stores "0x12345678"
     // If size > 8, only the first 8 bytes are processed. If size = 0 or data = nullptr, stores "0x0".
-    template <typename U = T>
-    requires std::is_same_v<U, char>
+    //template <typename U = T>
+    //requires std::is_same_v<U, char>
+    template<typename U = T,
+              typename = typename std::enable_if<std::is_same_v<U, char>>::type>
     void big_endian(const uint8_t* data, uint8_t size) {
         static_assert(std::is_same_v<T, char>, "big_endian is only valid for ps_ptr<char>");
         if (!data || size == 0) {
@@ -1535,8 +1607,10 @@ void unicodeToUTF8(const char* src) {
     // Reads up to 8 bytes from a uint8_t array in little-endian order and stores the value as a hexadecimal string (e.g., "0x12345678").
     // Example: uint8_t data[] = {0x78, 0x56, 0x34, 0x12}; → stores "0x12345678"
     // If size > 8, only the first 8 bytes are processed. If size = 0 or data = nullptr, stores "0x0".
-    template <typename U = T>
-    requires std::is_same_v<U, char>
+    //template <typename U = T>
+    //requires std::is_same_v<U, char>
+    template<typename U = T,
+              typename = typename std::enable_if<std::is_same_v<U, char>>::type>
     void little_endian(const uint8_t* data, uint8_t size) {
         static_assert(std::is_same_v<T, char>, "little_endian is only valid for ps_ptr<char>");
         if (!data || size == 0) {
@@ -1619,8 +1693,10 @@ void unicodeToUTF8(const char* src) {
     // text3.assign("  Hello, World!  ");
     // text3.trim();  // → "Hello, World!"
 
-    template <typename U = T>
-    requires std::is_same_v<U, char>
+    //template <typename U = T>
+    //requires std::is_same_v<U, char>
+    template<typename U = T,
+              typename = typename std::enable_if<std::is_same_v<U, char>>::type>
     void trim() {
         if (!mem) return;
 

@@ -16,10 +16,10 @@
 
 #include "Audio.h"
 #include "aac_decoder/aac_decoder.h"
-#include "flac_decoder/flac_decoder.h"
+//#include "flac_decoder/flac_decoder.h"
 #include "mp3_decoder/mp3_decoder.h"
-#include "opus_decoder/opus_decoder.h"
-#include "vorbis_decoder/vorbis_decoder.h"
+//#include "opus_decoder/opus_decoder.h"
+//#include "vorbis_decoder/vorbis_decoder.h"
 #include "psram_unique_ptr.hpp"
 
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -166,28 +166,49 @@ Audio::Audio(uint8_t i2sPort) {
     m_i2s_num = i2sPort;  // i2s port number
 
     // -------- I2S configuration -------------------------------------------------------------------------------------------
-    m_i2s_chan_cfg.id            = (i2s_port_t)m_i2s_num;  // I2S_NUM_AUTO, I2S_NUM_0, I2S_NUM_1
-    m_i2s_chan_cfg.role          = I2S_ROLE_MASTER;        // I2S controller master role, bclk and lrc signal will be set to output
-    m_i2s_chan_cfg.dma_desc_num  = 16;                     // number of DMA buffer
-    m_i2s_chan_cfg.dma_frame_num = 512;                    // I2S frame number in one DMA buffer.
-    m_i2s_chan_cfg.auto_clear    = true;                   // i2s will always send zero automatically if no data to send
-    i2s_new_channel(&m_i2s_chan_cfg, &m_i2s_tx_handle, NULL);
+    //m_i2s_chan_cfg.id            = (i2s_port_t)m_i2s_num;  // I2S_NUM_AUTO, I2S_NUM_0, I2S_NUM_1
+    //m_i2s_chan_cfg.role          = I2S_ROLE_MASTER;        // I2S controller master role, bclk and lrc signal will be set to output
+    //m_i2s_chan_cfg.dma_desc_num  = 16;                     // number of DMA buffer
+    //m_i2s_chan_cfg.dma_frame_num = 512;                    // I2S frame number in one DMA buffer.
+    //m_i2s_chan_cfg.auto_clear    = true;                   // i2s will always send zero automatically if no data to send
+    m_i2s_port 					 = (i2s_port_t)m_i2s_num;
+    m_i2s_config.mode = (i2s_mode_t)(I2S_MODE_MASTER | I2S_MODE_TX);
+    m_i2s_config.sample_rate = 48000;
+	m_i2s_config.bits_per_sample = I2S_BITS_PER_SAMPLE_16BIT;
+	m_i2s_config.channel_format = I2S_CHANNEL_FMT_RIGHT_LEFT;
+	m_i2s_config.communication_format = (i2s_comm_format_t)(I2S_COMM_FORMAT_STAND_I2S); // Arduino vers. > 2.0.0
+	m_i2s_config.intr_alloc_flags = ESP_INTR_FLAG_LEVEL1;   // interrupt priority
+	m_i2s_config.dma_buf_count = 8;
+	m_i2s_config.dma_buf_len = 1024;
+	m_i2s_config.use_apll = false;
+    m_i2s_config.tx_desc_auto_clear   = true;
+    m_i2s_config.fixed_mclk           = false;
+    m_i2s_config.mclk_multiple        = I2S_MCLK_MULTIPLE_128;
 
-    m_i2s_std_cfg.slot_cfg                = I2S_STD_PHILIPS_SLOT_DEFAULT_CONFIG(I2S_DATA_BIT_WIDTH_16BIT, I2S_SLOT_MODE_STEREO); // Set to enable bit shift in Philips mode
-    m_i2s_std_cfg.gpio_cfg.bclk           = I2S_GPIO_UNUSED;           // BCLK, Assignment in setPinout()
-    m_i2s_std_cfg.gpio_cfg.din            = I2S_GPIO_UNUSED;           // not used
-    m_i2s_std_cfg.gpio_cfg.dout           = I2S_GPIO_UNUSED;           // DOUT, Assignment in setPinout()
-    m_i2s_std_cfg.gpio_cfg.mclk           = I2S_GPIO_UNUSED;           // MCLK, Assignment in setPinout()
-    m_i2s_std_cfg.gpio_cfg.ws             = I2S_GPIO_UNUSED;           // LRC,  Assignment in setPinout()
-    m_i2s_std_cfg.gpio_cfg.invert_flags.mclk_inv = false;
-    m_i2s_std_cfg.gpio_cfg.invert_flags.bclk_inv = false;
-    m_i2s_std_cfg.gpio_cfg.invert_flags.ws_inv   = false;
-    m_i2s_std_cfg.clk_cfg.sample_rate_hz = 48000;
-    m_i2s_std_cfg.clk_cfg.clk_src        = I2S_CLK_SRC_DEFAULT;        // Select PLL_F160M as the default source clock
-    m_i2s_std_cfg.clk_cfg.mclk_multiple  = I2S_MCLK_MULTIPLE_128;      // mclk = sample_rate * 256
-    i2s_channel_init_std_mode(m_i2s_tx_handle, &m_i2s_std_cfg);
-    I2Sstart();
-    m_sampleRate = m_i2s_std_cfg.clk_cfg.sample_rate_hz;
+
+    i2s_driver_install((i2s_port_t)m_i2s_num, &m_i2s_config, 0, NULL);
+
+    i2s_zero_dma_buffer((i2s_port_t) m_i2s_num);
+        
+    //i2s_new_channel(&m_i2s_chan_cfg, &m_i2s_tx_handle, NULL);
+
+    //m_i2s_std_cfg.slot_cfg                = I2S_STD_PHILIPS_SLOT_DEFAULT_CONFIG(I2S_DATA_BIT_WIDTH_16BIT, I2S_SLOT_MODE_STEREO); // Set to enable bit shift in Philips mode
+    //m_i2s_std_cfg.gpio_cfg.bclk           = I2S_GPIO_UNUSED;           // BCLK, Assignment in setPinout()
+    //m_i2s_std_cfg.gpio_cfg.din            = I2S_GPIO_UNUSED;           // not used
+    //m_i2s_std_cfg.gpio_cfg.dout           = I2S_GPIO_UNUSED;           // DOUT, Assignment in setPinout()
+    //m_i2s_std_cfg.gpio_cfg.mclk           = I2S_GPIO_UNUSED;           // MCLK, Assignment in setPinout()
+    //m_i2s_std_cfg.gpio_cfg.ws             = I2S_GPIO_UNUSED;           // LRC,  Assignment in setPinout()
+    //m_i2s_std_cfg.gpio_cfg.invert_flags.mclk_inv = false;
+    //m_i2s_std_cfg.gpio_cfg.invert_flags.bclk_inv = false;
+    //m_i2s_std_cfg.gpio_cfg.invert_flags.ws_inv   = false;
+    //m_i2s_std_cfg.clk_cfg.sample_rate_hz = 48000;
+    //m_i2s_std_cfg.clk_cfg.clk_src        = I2S_CLK_SRC_DEFAULT;        // Select PLL_F160M as the default source clock
+    //m_i2s_std_cfg.clk_cfg.mclk_multiple  = I2S_MCLK_MULTIPLE_128;      // mclk = sample_rate * 256
+    //i2s_channel_init_std_mode(m_i2s_tx_handle, &m_i2s_std_cfg);
+
+    //I2Sstart();
+    //m_sampleRate = m_i2s_std_cfg.clk_cfg.sample_rate_hz;
+    m_sampleRate =  m_i2s_config.sample_rate;
 
     for(int i = 0; i < 3; i++) {
         m_filter[i].a0 = 1;
@@ -204,8 +225,9 @@ Audio::~Audio() {
     stopSong();
     setDefaults();
 
-    i2s_channel_disable(m_i2s_tx_handle);
-    i2s_del_channel(m_i2s_tx_handle);
+    //i2s_channel_disable(m_i2s_tx_handle);
+    //i2s_del_channel(m_i2s_tx_handle);
+    i2s_driver_uninstall((i2s_port_t) m_i2s_port);
     stopAudioTask();
     vSemaphoreDelete(mutex_playAudioData);
     vSemaphoreDelete(mutex_audioTask);
@@ -259,20 +281,27 @@ void Audio::initInBuff() {
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 esp_err_t Audio::I2Sstart() {
     zeroI2Sbuff();
-    return i2s_channel_enable(m_i2s_tx_handle);
+
+    //return i2s_channel_enable(m_i2s_tx_handle);
+    
+    // It is not necessary to call this function after i2s_driver_install() (it is started automatically),
+    // however it is necessary to call it after i2s_stop()
+    return i2s_start((i2s_port_t)m_i2s_port);
 }
 
 esp_err_t Audio::I2Sstop() {
     m_outBuff.clear(); // Clear OutputBuffer
     m_samplesBuff48K.clear(); // Clear samplesBuff48K
     std::fill(std::begin(m_inputHistory), std::end(m_inputHistory), 0); // Clear history in samplesBuff48K
-    return i2s_channel_disable(m_i2s_tx_handle);
+    //return i2s_channel_disable(m_i2s_tx_handle);
+    return i2s_stop((i2s_port_t)m_i2s_port);
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 void Audio::zeroI2Sbuff(){
-    uint8_t buff[2] = {0, 0}; // From IDF V5 there is no longer the zero_dma_buff() function.
-    size_t bytes_loaded = 0;  // As a replacement, we write a small amount of zeros in the buffer and thus reset the entire buffer.
-    i2s_channel_preload_data(m_i2s_tx_handle, buff, 2, &bytes_loaded);
+    //uint8_t buff[2] = {0, 0}; // From IDF V5 there is no longer the zero_dma_buff() function.
+    //size_t bytes_loaded = 0;  // As a replacement, we write a small amount of zeros in the buffer and thus reset the entire buffer.
+    //i2s_channel_preload_data(m_i2s_tx_handle, buff, 2, &bytes_loaded);
+    i2s_zero_dma_buffer(m_i2s_port);
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -281,10 +310,10 @@ void Audio::setDefaults() {
     initInBuff(); // initialize InputBuffer if not already done
     InBuff.resetBuffer();
     MP3Decoder_FreeBuffers();
-    FLACDecoder_FreeBuffers();
+//    FLACDecoder_FreeBuffers();
     AACDecoder_FreeBuffers();
-    OPUSDecoder_FreeBuffers();
-    VORBISDecoder_FreeBuffers();
+//    OPUSDecoder_FreeBuffers();
+//    VORBISDecoder_FreeBuffers();
     m_outBuff.clear(); // Clear OutputBuffer
     m_samplesBuff48K.clear(); // Clear samplesBuff48K
     vector_clear_and_shrink(m_playlistURL);
@@ -295,7 +324,7 @@ void Audio::setDefaults() {
     m_hashQueue.shrink_to_fit(); // uint32_t vector
     client.stop();
     clientsecure.stop();
-    m_client = static_cast<NetworkClient*>(&client); /* default to *something* so that no NULL deref can happen */
+    m_client = static_cast<WiFiClient*>(&client); /* default to *something* so that no NULL deref can happen */
     ts_parsePacket(0, 0, 0);                     // reset ts routine
     m_lastM3U8host.reset();
 
@@ -472,7 +501,7 @@ bool Audio::openai_speech(const String& api_key, const String& model, const Stri
 
     bool res = true;
     int port = 443;
-    m_client = static_cast<NetworkClientSecure*>(&clientsecure);
+    m_client = static_cast<WiFiClientSecure*>(&clientsecure);
 
     uint32_t t = millis();
     info(evt_info, "Connect to: \"%s\"", host.get());
@@ -630,8 +659,8 @@ bool Audio::connecttohost(const char* host, const char* user, const char* pwd) {
                        rqh.append("Accept-Encoding: identity;q=1,*;q=0\r\n");
                        rqh.append("Connection: keep-alive\r\n\r\n");
 
-    if(m_f_ssl) { m_client = static_cast<NetworkClientSecure*>(&clientsecure); if(port == 80) port = 443;}
-    else        { m_client = static_cast<NetworkClient*>(&client); }
+    if(m_f_ssl) { m_client = static_cast<WiFiClientSecure*>(&clientsecure); if(port == 80) port = 443;}
+    else        { m_client = static_cast<WiFiClient*>(&client); }
 
     timestamp = millis();
     m_client->setTimeout(m_f_ssl ? m_timeout_ms_ssl : m_timeout_ms);
@@ -743,8 +772,8 @@ bool Audio::httpPrint(const char* host) {
         if(m_client->connected()) m_client->stop();
     }
     if(!m_client->connected() ) {
-         if(m_f_ssl) { m_client = static_cast<NetworkClientSecure*>(&clientsecure); if(m_f_ssl && port == 80) port = 443;}
-         else        { m_client = static_cast<NetworkClient*>(&client); }
+         if(m_f_ssl) { m_client = static_cast<WiFiClientSecure*>(&clientsecure); if(m_f_ssl && port == 80) port = 443;}
+         else        { m_client = static_cast<WiFiClient*>(&client); }
         if(f_equal) info(evt_info, "The host has disconnected, reconnecting");
 
         if(!m_client->connect(hwoe.get(), port)) {
@@ -835,8 +864,8 @@ bool Audio::httpRange(uint32_t seek, uint32_t length){
     rqh.append("User-Agent: VLC/3.0.21 LibVLC/3.0.21 AppleWebKit/537.36 (KHTML, like Gecko)\r\n\r\n");
 
     if(m_client->connected()) {m_client->stop();}
-    if(m_f_ssl) { m_client = static_cast<NetworkClientSecure*>(&clientsecure); if(m_f_ssl && port == 80) port = 443;}
-    else        { m_client = static_cast<NetworkClient*>(&client); }
+    if(m_f_ssl) { m_client = static_cast<WiFiClientSecure*>(&clientsecure); if(m_f_ssl && port == 80) port = 443;}
+    else        { m_client = static_cast<WiFiClient*>(&client); }
 
     if(!m_client->connect(hwoe.get(), port)) {
         AUDIO_LOG_ERROR("connection lost %s", c_host.c_get());
@@ -925,7 +954,7 @@ bool Audio::connecttospeech(const char* speech, const char* lang) {
     req.append("Accept: text/html\r\n");
     req.append("Connection: close\r\n\r\n");
 
-    m_client = static_cast<NetworkClient*>(&client);
+    m_client = static_cast<WiFiClient*>(&client);
     info(evt_info, "connect to \"%s\"", host);
     if(!m_client->connect(host, 80)) {
         AUDIO_LOG_ERROR("Connection failed");
@@ -1495,7 +1524,7 @@ int Audio::read_FLAC_Header(uint8_t* data, size_t len) {
         m_controlCounter = FLAC_OKAY;
         m_audioDataStart =m_rflh. headerSize;
         m_audioDataSize = m_audioFileSize - m_audioDataStart;
-        FLACSetRawBlockParams(m_flacNumChannels, m_flacSampleRate, m_flacBitsPerSample, m_flacTotalSamplesInStream, m_audioDataSize);
+//        FLACSetRawBlockParams(m_flacNumChannels, m_flacSampleRate, m_flacBitsPerSample, m_flacTotalSamplesInStream, m_audioDataSize);
         if(m_rflh.picLen) {
             size_t pos = m_audioFilePosition;
             std::vector<uint32_t> vec;
@@ -2908,9 +2937,11 @@ uint32_t Audio::stopSong() {
         if(m_codec == CODEC_MP3) MP3Decoder_FreeBuffers();
         if(m_codec == CODEC_AAC) AACDecoder_FreeBuffers();
         if(m_codec == CODEC_M4A) AACDecoder_FreeBuffers();
+/*
         if(m_codec == CODEC_FLAC) FLACDecoder_FreeBuffers();
         if(m_codec == CODEC_OPUS) OPUSDecoder_FreeBuffers();
         if(m_codec == CODEC_VORBIS) VORBISDecoder_FreeBuffers();
+*/
         m_validSamples = 0;
         m_audioCurrentTime = 0;
         m_audioFileDuration = 0;
@@ -2919,6 +2950,7 @@ uint32_t Audio::stopSong() {
         m_streamType = ST_NONE;
         m_playlistFormat = FORMAT_NONE;
         m_f_lockInBuffer = false;
+        info(evt_info, "Song stopped");
     return pos;
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -3095,7 +3127,8 @@ void IRAM_ATTR Audio::playChunk() {
 
 i2swrite:
 
-    m_plCh.err = i2s_channel_write(m_i2s_tx_handle, outBuff_ptr + m_plCh.count, m_validSamples * m_plCh.sampleSize, &m_plCh.i2s_bytesConsumed, 50);
+    //m_plCh.err = i2s_channel_write(m_i2s_tx_handle, outBuff_ptr + m_plCh.count, m_validSamples * m_plCh.sampleSize, &m_plCh.i2s_bytesConsumed, 50);
+    m_plCh.err = i2s_write(m_i2s_port, outBuff_ptr + m_plCh.count, m_validSamples * m_plCh.sampleSize, &m_plCh.i2s_bytesConsumed, 50);
     if( ! (m_plCh.err == ESP_OK || m_plCh.err == ESP_ERR_TIMEOUT)) goto exit;
     m_validSamples -= m_plCh.i2s_bytesConsumed / m_plCh.sampleSize;
     m_plCh.count += m_plCh.i2s_bytesConsumed / 2;
@@ -4615,6 +4648,7 @@ bool Audio::initializeDecoder(uint8_t codec) {
                 InBuff.changeMaxBlockSize(m_frameSizeAAC);
             }
             break;
+/*
         case CODEC_FLAC:
             if(!FLACDecoder_AllocateBuffers()) {
                 AUDIO_LOG_ERROR("The FLACDecoder could not be initialized");
@@ -4636,6 +4670,7 @@ bool Audio::initializeDecoder(uint8_t codec) {
                 AUDIO_LOG_ERROR("The VORBISDecoder could not be initialized");
                 goto exit;
             }
+*/
             info(evt_info, "VORBISDecoder has been initialized");
             InBuff.changeMaxBlockSize(m_frameSizeVORBIS);
             break;
@@ -5000,6 +5035,7 @@ int Audio::findNextSync(uint8_t* data, size_t len) {
         m_f_playing = true;
         m_fnsy.nextSync = 0;
     }
+/*
     if(m_codec == CODEC_FLAC) {
         m_fnsy.nextSync = FLACFindSyncWord(data, len);
         if(m_fnsy.nextSync == -1) return len; // OggS not found, search next block
@@ -5012,6 +5048,7 @@ int Audio::findNextSync(uint8_t* data, size_t len) {
         m_fnsy.nextSync = VORBISFindSyncWord(data, len);
         if(m_fnsy.nextSync == -1) return len; // OggS not found, search next block
     }
+*/
     if(m_fnsy.nextSync == -1) {
         if(m_fnsy.swnf == 0) info(evt_info, "syncword not found");
         else {
@@ -5046,6 +5083,7 @@ void Audio::setDecoderItems() {
         setBitsPerSample(AACGetBitsPerSample());
         setBitrate(AACGetBitrate());
     }
+/*
     if(m_codec == CODEC_FLAC) {
         setChannels(FLACGetChannels());
         setSampleRate(FLACGetSampRate());
@@ -5076,6 +5114,7 @@ void Audio::setDecoderItems() {
             if(m_audioFileSize) m_audioDataSize = m_audioFileSize - m_audioDataStart;
         }
     }
+*/
     if(getBitsPerSample() != 8 && getBitsPerSample() != 16) {
         AUDIO_LOG_ERROR("Bits per sample must be 8 or 16, found %i", getBitsPerSample());
         stopSong();
@@ -5115,10 +5154,12 @@ uint32_t Audio::decodeError(int8_t res, uint8_t* data, int32_t bytesDecoded){
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 uint32_t Audio::decodeContinue(int8_t res, uint8_t* data, int32_t bytesDecoded){
     // if(m_codec == CODEC_MP3){   if(res == MAD_ERROR_CONTINUE)    return bytesDecoded;} // nothing to play, mybe eof
+/*
     if(m_codec == CODEC_FLAC){  if(res == FLAC_PARSE_OGG_DONE)   return bytesDecoded;} // nothing to play
     if(m_codec == CODEC_OPUS){  if(res == OPUS_PARSE_OGG_DONE)   return bytesDecoded;  // nothing to play
                                 if(res == OPUS_END)              return bytesDecoded;} // nothing to play
     if(m_codec == CODEC_VORBIS){if(res == VORBIS_PARSE_OGG_DONE) return bytesDecoded;} // nothing to play
+*/
     return 0;
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -5149,9 +5190,11 @@ int Audio::sendBytes(uint8_t* data, size_t len) {
         case CODEC_MP3:    res = MP3Decode(   data, &m_sbyt.bytesLeft, m_outBuff.get()); break;
         case CODEC_AAC:    res = AACDecode(   data, &m_sbyt.bytesLeft, m_outBuff.get()); break;
         case CODEC_M4A:    res = AACDecode(   data, &m_sbyt.bytesLeft, m_outBuff.get()); break;
+/*
         case CODEC_FLAC:   res = FLACDecode(  data, &m_sbyt.bytesLeft, m_outBuff.get()); break;
         case CODEC_OPUS:   res = OPUSDecode(  data, &m_sbyt.bytesLeft, m_outBuff.get()); break;
         case CODEC_VORBIS: res = VORBISDecode(data, &m_sbyt.bytesLeft, m_outBuff.get()); break;
+*/
         default: {
             AUDIO_LOG_ERROR("no valid codec found codec = %d", m_codec);
             stopSong();
@@ -5203,6 +5246,7 @@ int Audio::sendBytes(uint8_t* data, size_t len) {
                             break;
         case CODEC_M4A:     m_validSamples = AACGetOutputSamps() / getChannels();
                             break;
+/*
         case CODEC_FLAC:    m_validSamples = FLACGetOutputSamps() / getChannels();
                             st = FLACgetStreamTitle();
                             if(st) {
@@ -5254,6 +5298,7 @@ int Audio::sendBytes(uint8_t* data, size_t len) {
                                 info(evt_image, vec);
                             }
                             break;
+*/
     }
     if(m_sbyt.f_setDecodeParamsOnce && m_validSamples) {
         m_sbyt.f_setDecodeParamsOnce = false;
@@ -5286,12 +5331,13 @@ void Audio::computeAudioTime(uint16_t bytesDecoderIn, uint16_t bytesDecoderOut) 
         m_cat.deltaBytesIn = 0;
         m_cat.nominalBitRate = 0;
         m_cat.syltIdx = 0;
-
+/*
         if(m_codec == CODEC_FLAC && FLACGetAudioFileDuration()){
             m_audioFileDuration = FLACGetAudioFileDuration();
             m_cat.nominalBitRate = (m_audioDataSize / FLACGetAudioFileDuration()) * 8;
             m_avr_bitrate = m_cat.nominalBitRate;
         }
+        */
         if(m_codec == CODEC_WAV){
             m_cat.nominalBitRate = getBitRate();
             m_avr_bitrate = m_cat.nominalBitRate;
@@ -5373,14 +5419,22 @@ bool Audio::setPinout(uint8_t BCLK, uint8_t LRC, uint8_t DOUT, int8_t MCLK) {
     trim(audioI2SVers);
     info(evt_info, "audioI2S %s", audioI2SVers);
 
-    i2s_std_gpio_config_t gpio_cfg = {};
-    gpio_cfg.bclk = (gpio_num_t)BCLK;
-    gpio_cfg.din = (gpio_num_t)I2S_GPIO_UNUSED;
-    gpio_cfg.dout = (gpio_num_t)DOUT;
-    gpio_cfg.mclk = (gpio_num_t)MCLK;
-    gpio_cfg.ws = (gpio_num_t)LRC;
+    //i2s_std_gpio_config_t gpio_cfg = {};
+    //gpio_cfg.bclk = (gpio_num_t)BCLK;
+    //gpio_cfg.din = (gpio_num_t)I2S_GPIO_UNUSED;
+    //gpio_cfg.dout = (gpio_num_t)DOUT;
+    //gpio_cfg.mclk = (gpio_num_t)MCLK;
+    //gpio_cfg.ws = (gpio_num_t)LRC;
+    i2s_pin_config_t   m_i2s_pins = {};
+    m_i2s_pins.bck_io_num = (gpio_num_t)BCLK;
+    m_i2s_pins.ws_io_num = (gpio_num_t)LRC;
+	m_i2s_pins.data_out_num = (gpio_num_t)DOUT;
+	m_i2s_pins.data_in_num = (gpio_num_t)I2S_PIN_NO_CHANGE;
+	m_i2s_pins.mck_io_num = (gpio_num_t)I2S_PIN_NO_CHANGE; //this actually turns of mclk! important!
+
     I2Sstop();
-    result = i2s_channel_reconfig_std_gpio(m_i2s_tx_handle, &gpio_cfg);
+    //result = i2s_channel_reconfig_std_gpio(m_i2s_tx_handle, &gpio_cfg);
+    result = i2s_set_pin(m_i2s_port, &m_i2s_pins);
     I2Sstart();
 
     return (result == ESP_OK);
@@ -5540,10 +5594,13 @@ bool Audio::setSampleRate(uint32_t sampRate) {
     m_sampleRate = sampRate;
     m_resampleRatio = (float)m_sampleRate / 48000.0f;
 
-    m_i2s_std_cfg.clk_cfg.sample_rate_hz = m_sampleRate;
-    i2s_channel_disable(m_i2s_tx_handle);
-    i2s_channel_reconfig_std_clock(m_i2s_tx_handle, &m_i2s_std_cfg.clk_cfg);
-    i2s_channel_enable(m_i2s_tx_handle);
+    //m_i2s_std_cfg.clk_cfg.sample_rate_hz = m_sampleRate;
+    //i2s_channel_disable(m_i2s_tx_handle);
+    //i2s_channel_reconfig_std_clock(m_i2s_tx_handle, &m_i2s_std_cfg.clk_cfg);
+    //i2s_channel_enable(m_i2s_tx_handle);
+    i2s_driver_uninstall(m_i2s_port);
+    m_i2s_config.sample_rate = m_sampleRate;
+    i2s_driver_install(m_i2s_port, &m_i2s_config, 0, NULL);
     return true;
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -5581,7 +5638,7 @@ void Audio::setI2SCommFMT_LSB(bool commFMT) {
     // false: I2S communication format is by default I2S_COMM_FORMAT_I2S_MSB, right->left (AC101, PCM5102A)
     // true:  changed to I2S_COMM_FORMAT_I2S_LSB for some DACs (PT8211)
     //        Japanese or called LSBJ (Least Significant Bit Justified) format
-
+	/*
     m_f_commFMT = commFMT;
 
     i2s_channel_disable(m_i2s_tx_handle);
@@ -5595,6 +5652,8 @@ void Audio::setI2SCommFMT_LSB(bool commFMT) {
     }
     i2s_channel_reconfig_std_slot(m_i2s_tx_handle, &m_i2s_std_cfg.slot_cfg);
     i2s_channel_enable(m_i2s_tx_handle);
+    */
+	//commented out the above, not needed anyway probably
 }
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 void Audio::computeVUlevel(int16_t sample[2]) {
@@ -6477,9 +6536,9 @@ int32_t Audio::newInBuffStart(int32_t m_resumeFilePos){
             if(m_codec == CODEC_OPUS || m_codec == CODEC_VORBIS) {if(InBuff.bufferFilled() < 0xFFFF) return - 1;} // ogg frame <= 64kB
             if(m_codec == CODEC_WAV)   {while((m_resumeFilePos % 4) != 0){m_resumeFilePos++; offset++; if(m_resumeFilePos >= m_audioFileSize) goto exit;}}  // must divisible by four
             if(m_codec == CODEC_MP3)   {offset = mp3_correctResumeFilePos();  if(offset == -1) goto exit; MP3Decoder_ClearBuffer();}
-            if(m_codec == CODEC_FLAC)  {offset = flac_correctResumeFilePos(); if(offset == -1) goto exit; FLACDecoderReset();}
-            if(m_codec == CODEC_VORBIS){offset = ogg_correctResumeFilePos();  if(offset == -1) goto exit; VORBISDecoder_ClearBuffers();}
-            if(m_codec == CODEC_OPUS)  {offset = ogg_correctResumeFilePos();  if(offset == -1) goto exit; OPUSDecoder_ClearBuffers();}
+            //if(m_codec == CODEC_FLAC)  {offset = flac_correctResumeFilePos(); if(offset == -1) goto exit; FLACDecoderReset();}
+            //if(m_codec == CODEC_VORBIS){offset = ogg_correctResumeFilePos();  if(offset == -1) goto exit; VORBISDecoder_ClearBuffers();}
+            //if(m_codec == CODEC_OPUS)  {offset = ogg_correctResumeFilePos();  if(offset == -1) goto exit; OPUSDecoder_ClearBuffers();}
 
 
             InBuff.bytesWasRead(offset);
@@ -6675,7 +6734,8 @@ uint8_t Audio::determineOggCodec(uint8_t* data, uint16_t len) {
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 void Audio::setAudioTaskCore(uint8_t coreID){  // Recommendation:If the ARDUINO RUNNING CORE is 1, the audio task should be core 0 or vice versa
-    if(coreID > 1) return;
+	info(evt_info, "Setting Task CoreID %d->%d", m_audioTaskCoreId, coreID);
+	if(coreID > 1) return;
     stopAudioTask();
     xSemaphoreTake(mutex_audioTask, 0.3 * configTICK_RATE_HZ);
     m_audioTaskCoreId = coreID;
@@ -6689,8 +6749,7 @@ void Audio::startAudioTask() {
         return;
     }
     m_f_audioTaskIsRunning = true;
-
-
+    info(evt_info, "Starting Task on CoreID %d", m_audioTaskCoreId);
     m_audioTaskHandle = xTaskCreateStaticPinnedToCore(
         &Audio::taskWrapper,    /* Function to implement the task */
         "PeriodicTask",         /* Name of the task */
@@ -6705,9 +6764,10 @@ void Audio::startAudioTask() {
 
 void Audio::stopAudioTask()  {
     if (!m_f_audioTaskIsRunning) {
-        AUDIO_LOG_INFO("audio task is not running.");
+        AUDIO_LOG_INFO("Audio task is not running.");
         return;
     }
+
     xSemaphoreTake(mutex_audioTask, 0.3 * configTICK_RATE_HZ);
     m_f_audioTaskIsRunning = false;
     if (m_audioTaskHandle != nullptr) {

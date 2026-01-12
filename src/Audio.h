@@ -26,13 +26,17 @@
 #include <codecvt>
 #include <locale>
 #include <memory>
-#include <NetworkClient.h>
-#include <NetworkClientSecure.h>
-#include <driver/i2s_std.h>
+#include <WiFi.h>
+#include <WiFiClientSecure.h>
+#include <driver/i2s.h>
 #include "psram_unique_ptr.hpp"
 
 #ifndef I2S_GPIO_UNUSED
   #define I2S_GPIO_UNUSED -1 // = I2S_PIN_NO_CHANGE in IDF < 5
+#endif
+
+#ifndef AUDIO_LOG_LEVEL
+  #define AUDIO_LOG_LEVEL 0
 #endif
 
 extern __attribute__((weak)) void audio_process_i2s(int16_t* outBuff, int32_t validSamples, bool *continueI2S); // record audiodata or send via BT
@@ -447,7 +451,7 @@ private:
     void         setConnectionTimeout(uint16_t timeout_ms, uint16_t timeout_ms_ssl);
     bool         setAudioPlayPosition(uint16_t sec);
     bool         setTimeOffset(int sec);
-    bool         setPinout(uint8_t BCLK, uint8_t LRC, uint8_t DOUT, int8_t MCLK = I2S_GPIO_UNUSED);
+    bool         setPinout(uint8_t BCLK, uint8_t LRC, uint8_t DOUT, int8_t MCLK = I2S_PIN_NO_CHANGE);
     bool         pauseResume();
     bool         isRunning() { return m_f_running; }
     void         loop();
@@ -851,9 +855,9 @@ private:
     } pid_array;
 
     File                  m_audiofile;
-    NetworkClient	      client;
-    NetworkClientSecure	  clientsecure;
-    NetworkClient*        m_client = nullptr;
+    WiFiClient	      client;
+    WiFiClientSecure	  clientsecure;
+    WiFiClient*        m_client = nullptr;
 
     SemaphoreHandle_t     mutex_playAudioData;
     SemaphoreHandle_t     mutex_audioTask;
@@ -862,9 +866,13 @@ private:
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 
-    i2s_chan_handle_t     m_i2s_tx_handle = {};
-    i2s_chan_config_t     m_i2s_chan_cfg = {}; // stores I2S channel values
-    i2s_std_config_t      m_i2s_std_cfg = {};  // stores I2S driver values
+    //i2s_chan_handle_t     m_i2s_tx_handle = {};
+    //i2s_chan_config_t     m_i2s_chan_cfg = {}; // stores I2S channel values
+    //i2s_std_config_t      m_i2s_std_cfg = {};  // stores I2S driver values
+
+    i2s_port_t            m_i2s_port;
+    i2s_config_t          m_i2s_config = {};
+
 
 #pragma GCC diagnostic pop
 
@@ -1056,11 +1064,11 @@ private:
         char* dest = final.get();
         if (!dest) return;  // or error treatment
         if(audio_info_callback){
-            if     (level == 1 && CORE_DEBUG_LEVEL >= 1) snprintf(dest, total_len + 1, "%s:%d:" ANSI_ESC_RED " %s" ANSI_ESC_RESET, file.c_get(), line, dst);
-            else if(level == 2 && CORE_DEBUG_LEVEL >= 2) snprintf(dest, total_len + 1, "%s:%d:" ANSI_ESC_YELLOW " %s" ANSI_ESC_RESET, file.c_get(), line, dst);
-            else if(level == 3 && CORE_DEBUG_LEVEL >= 3) snprintf(dest, total_len + 1, "%s:%d:" ANSI_ESC_GREEN " %s" ANSI_ESC_RESET, file.c_get(), line, dst);
-            else if(level == 4 && CORE_DEBUG_LEVEL >= 4) snprintf(dest, total_len + 1, "%s:%d:" ANSI_ESC_CYAN " %s" ANSI_ESC_RESET, file.c_get(), line, dst);  // debug
-            else              if( CORE_DEBUG_LEVEL >= 5) snprintf(dest, total_len + 1, "%s:%d:" ANSI_ESC_WHITE " %s" ANSI_ESC_RESET, file.c_get(), line, dst); // verbose
+            if     (level == 1 && AUDIO_LOG_LEVEL >= 1) snprintf(dest, total_len + 1, "%s:%d:" ANSI_ESC_RED " %s" ANSI_ESC_RESET, file.c_get(), line, dst);
+            else if(level == 2 && AUDIO_LOG_LEVEL >= 2) snprintf(dest, total_len + 1, "%s:%d:" ANSI_ESC_YELLOW " %s" ANSI_ESC_RESET, file.c_get(), line, dst);
+            else if(level == 3 && AUDIO_LOG_LEVEL >= 3) snprintf(dest, total_len + 1, "%s:%d:" ANSI_ESC_GREEN " %s" ANSI_ESC_RESET, file.c_get(), line, dst);
+            else if(level == 4 && AUDIO_LOG_LEVEL >= 4) snprintf(dest, total_len + 1, "%s:%d:" ANSI_ESC_CYAN " %s" ANSI_ESC_RESET, file.c_get(), line, dst);  // debug
+            else              if( AUDIO_LOG_LEVEL >= 5) snprintf(dest, total_len + 1, "%s:%d:" ANSI_ESC_WHITE " %s" ANSI_ESC_RESET, file.c_get(), line, dst); // verbose
             msg_t msg;
             msg.msg = final.get();
             const char* logStr[7] ={"", "LOGE", "LOGW", "LOGI", "LOGD", "LOGV", ""};
